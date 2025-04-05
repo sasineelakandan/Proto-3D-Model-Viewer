@@ -15,6 +15,12 @@ interface MeshMetadata {
   hasNormals: boolean;
   materialName?: string;
   geometryType: string;
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+  minZ: number;
+  maxZ: number;
 }
 
 const ModelViewer: React.FC = () => {
@@ -68,18 +74,23 @@ const ModelViewer: React.FC = () => {
             const mesh = child as THREE.Mesh;
             const geometry = mesh.geometry as THREE.BufferGeometry;
 
-            const vertexCount = geometry.attributes.position?.count || 0;
-            const faceCount = geometry.index ? geometry.index.count / 3 : vertexCount / 3;
-            const hasUV = !!geometry.attributes.uv;
-            const hasNormals = !!geometry.attributes.normal;
-            const materialName = (mesh.material as any)?.name || 'Unnamed';
-
             mesh.material = new THREE.MeshStandardMaterial({
               map: texture,
               color: 0xffffff,
               roughness: 0.8,
               metalness: 0.2,
             });
+
+            const vertexCount = geometry.attributes.position?.count || 0;
+            const faceCount = geometry.index ? geometry.index.count / 3 : vertexCount / 3;
+            const hasUV = !!geometry.attributes.uv;
+            const hasNormals = !!geometry.attributes.normal;
+            const materialName = (mesh.material as any)?.name || 'Unnamed';
+
+            // Compute bounding box
+            geometry.computeBoundingBox();
+            const box = geometry.boundingBox!;
+            const { min, max } = box;
 
             extractedMetadata.push({
               name: mesh.name || '(Unnamed)',
@@ -89,6 +100,12 @@ const ModelViewer: React.FC = () => {
               hasNormals,
               materialName,
               geometryType: geometry.type,
+              minX: min.x,
+              maxX: max.x,
+              minY: min.y,
+              maxY: max.y,
+              minZ: min.z,
+              maxZ: max.z,
             });
           }
         });
@@ -135,7 +152,7 @@ const ModelViewer: React.FC = () => {
       <div ref={mountRef} className="w-full h-full" />
 
       {/* === Metadata Viewer === */}
-      <div className="absolute top-5 left-5 bg-black bg-opacity-70 text-white p-4 rounded-lg max-h-[80vh] overflow-y-auto shadow-lg backdrop-blur-sm">
+      <div className="absolute top-5 left-5 bg-black bg-opacity-70 text-white p-4 rounded-lg max-h-[80vh] overflow-y-auto shadow-lg backdrop-blur-sm text-sm">
         <h3 className="text-lg font-semibold mb-2">Model Metadata</h3>
         {metadata.length > 0 ? (
           metadata.map((item, index) => (
@@ -145,8 +162,11 @@ const ModelViewer: React.FC = () => {
               <p><span className="font-bold">Faces:</span> {item.faces}</p>
               <p><span className="font-bold">UV:</span> {item.hasUV ? 'Yes' : 'No'}</p>
               <p><span className="font-bold">Normals:</span> {item.hasNormals ? 'Yes' : 'No'}</p>
-              <p><span className="font-bold">Material:</span> {item.materialName}</p>
-              <p><span className="font-bold">Geometry Type:</span> {item.geometryType}</p>
+              <p><span className="font-bold">Material:</span> 0</p>
+              <p><span className="font-bold">Geometry:</span> {item.geometryType}</p>
+              <p><span className="font-bold">X:</span> Min {item.minX.toFixed(2)} / Max {item.maxX.toFixed(2)}</p>
+              <p><span className="font-bold">Y:</span> Min {item.minY.toFixed(2)} / Max {item.maxY.toFixed(2)}</p>
+              <p><span className="font-bold">Z:</span> Min {item.minZ.toFixed(2)} / Max {item.maxZ.toFixed(2)}</p>
               <hr className="my-2 border-gray-600" />
             </div>
           ))
